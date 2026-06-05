@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // インタラインのスタイルを動的に注入（Tailwindのセットアップがなくても綺麗に表示するため）
 const injectStyles = () => {
@@ -22,6 +22,22 @@ export default function App() {
     'widget'
   );
   const [isScratched, setIsScratched] = useState(false);
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  // 現在時刻を取得して更新
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      setCurrentTime(`${hours}:${minutes}`);
+    };
+    
+    updateTime();
+    const interval = setInterval(updateTime, 60000); // 1分ごとに更新
+    
+    return () => clearInterval(interval);
+  }, []);
   const [subscs, setSubscs] = useState([
     {
       id: 1,
@@ -72,16 +88,16 @@ export default function App() {
         fontFamily: 'sans-serif',
       }}
     >
-      {/* スマホの物理的な外枠を再現（モックアップUI） */}
+      {/* Android風のスマホ外枠 */}
       <div
         style={{
           width: '100%',
           maxWidth: '375px',
           height: '680px',
-          backgroundColor: '#1e293b',
-          borderRadius: '40px',
-          border: '8px solid #334155',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          backgroundColor: '#1a1a1a',
+          borderRadius: '20px',
+          border: '6px solid #2a2a2a',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -89,29 +105,22 @@ export default function App() {
           position: 'relative',
         }}
       >
-        {/* スマホの画面上部（ノッチ・ステータスバー風デザイン） */}
+        {/* Android風ステータスバー */}
         <div
           style={{
-            height: '30px',
-            backgroundColor: '#0f172a',
+            height: '24px',
+            backgroundColor: '#000',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 20px',
-            fontSize: '11px',
-            color: '#64748b',
+            padding: '0 16px',
+            fontSize: '10px',
+            color: '#fff',
+            paddingTop: '2px',
           }}
         >
-          <span>14:15</span>
-          <div
-            style={{
-              width: '50px',
-              height: '15px',
-              backgroundColor: '#1e293b',
-              borderRadius: '0 0 10px 10px',
-            }}
-          ></div>
-          <div style={{ display: 'flex', gap: '4px' }}>📶 🔋</div>
+          <span style={{ fontSize: '10px' }}>{currentTime || '--:--'}</span>
+          <div style={{ display: 'flex', gap: '3px', fontSize: '9px' }}>📶 📡 🔋</div>
         </div>
 
         {/* メイン画面エリア */}
@@ -262,20 +271,20 @@ export default function App() {
                     height: '170px',
                     borderRadius: '50%',
                     background:
-                      'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+                      'linear-gradient(180deg, #f43f5e 0%, #ec4899 50%, #be123c 100%)',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)',
-                    border: '4px solid #fff',
+                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5), inset -8px -8px 16px rgba(0,0,0,0.3)',
+                    border: 'none',
                     relative: 'relative',
                     position: 'relative',
                     zIndex: 10,
                   }}
                 >
-                  <span style={{ fontSize: '45px', marginBottom: '4px' }}>
-                    😵
+                  <span style={{ fontSize: '50px', marginBottom: '8px' }}>
+                    👀
                   </span>
                   <span
                     style={{
@@ -459,13 +468,21 @@ export default function App() {
                       position: 'absolute',
                       inset: 0,
                       background:
-                        'linear-gradient(135deg, #475569 0%, #334155 100%)',
+                        'linear-gradient(135deg, #ef476f 0%, #f78c6b 50%, #ffd166 100%)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
                       padding: '15px',
+                      backgroundImage: `
+                        radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 1px, transparent 1px),
+                        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.2) 2px, transparent 2px),
+                        radial-gradient(circle at 40% 80%, rgba(0,0,0,0.1) 1px, transparent 1px),
+                        linear-gradient(135deg, #ef476f 0%, #f78c6b 50%, #ffd166 100%)
+                      `,
+                      backgroundSize: '100px 100px, 150px 150px, 120px 120px, 100% 100%',
+                      boxShadow: 'inset -4px -4px 12px rgba(0,0,0,0.3), inset 4px 4px 12px rgba(255,255,255,0.2)',
                     }}
                   >
                     <span style={{ fontSize: '24px', marginBottom: '6px' }}>
@@ -475,9 +492,10 @@ export default function App() {
                       style={{
                         fontSize: '12px',
                         fontWeight: 'bold',
-                        color: '#cbd5e1',
+                        color: '#fff',
                         textAlign: 'center',
                         animation: 'pulse-slow 2s infinite',
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
                       }}
                     >
                       月初のリラックスタイムです。
@@ -552,24 +570,65 @@ export default function App() {
           )}
         </div>
 
-        {/* スマホの画面下部（ホームバー風デザイン） */}
+        {/* Android風ナビゲーションバー */}
         <div
           style={{
-            height: '20px',
+            height: '48px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#1e293b',
+            justifyContent: 'space-around',
+            backgroundColor: '#1a1a1a',
+            borderTop: '1px solid #333',
           }}
         >
-          <div
+          <button
             style={{
-              width: '120px',
-              height: '4px',
-              backgroundColor: '#475569',
-              borderRadius: '2px',
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-          ></div>
+          >
+            ⬅️
+          </button>
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            🏠
+          </button>
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ⋮
+          </button>
         </div>
       </div>
     </div>
