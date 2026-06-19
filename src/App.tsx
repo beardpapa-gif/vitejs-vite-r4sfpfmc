@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+// 画像を `src/assets/` に置いてモジュールとしてインポートします
+import backgroundImage from './assets/wallpaper.jpg';
+import subscKunImage from './assets/subsc-kun.png';
 
 // アニメーションスタイルの注入（よりリッチな演出を追加）
 const injectStyles = () => {
@@ -187,14 +190,14 @@ export default function App() {
         >
           {/* ==================== 1. WIDGET STAGE (初期状態) ==================== */}
           {stage === 'widget' && (
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'relative', backgroundImage: wallpaperAvailable ? 'url("/wallpaper.jpg")' : undefined, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: wallpaperAvailable ? undefined : '#121212' }}>
-              {/* invisible detector: if wallpaper.jpg missing, onError will flip flag */}
-              <img src="/wallpaper.jpg" alt="" style={{ display: 'none' }} onError={() => setWallpaperAvailable(false)} onLoad={() => setWallpaperAvailable(true)} />
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'relative', backgroundImage: wallpaperAvailable ? `url(${backgroundImage})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: wallpaperAvailable ? undefined : '#121212' }}>
+              {/* invisible detector: if wallpaper asset missing, onError will flip flag */}
+              <img src={backgroundImage} alt="" style={{ display: 'none' }} onError={() => setWallpaperAvailable(false)} onLoad={() => setWallpaperAvailable(true)} />
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1 }} />
               <div style={{ position: 'relative', zIndex: 2, width: '100%' }}>
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                   {logoAvailable ? (
-                    <img src="/logo.jpg" alt="炸裂！サブスク育成図鑑" style={{ width: '100%', maxWidth: '320px', height: 'auto', display: 'block', margin: '0 auto 8px' }} onError={() => setLogoAvailable(false)} onLoad={() => setLogoAvailable(true)} />
+                    <img src={subscKunImage} alt="サブスクくん" style={{ width: '100%', maxWidth: '320px', height: 'auto', display: 'block', margin: '0 auto 8px' }} onError={() => setLogoAvailable(false)} onLoad={() => setLogoAvailable(true)} />
                   ) : (
                     <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#ddd', marginBottom: '8px' }}>炸裂！ サブスク育成図鑑</h1>
                   )}
