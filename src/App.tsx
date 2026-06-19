@@ -187,8 +187,8 @@ export default function App() {
           {stage === 'widget' && (
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
               <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#aaa', marginBottom: '8px' }}>ホーム画面</h1>
-                <p style={{ fontSize: '13px', color: '#666' }}>（サブスクを放置して3ヶ月目の現実）</p>
+                <img src="/logo.png" alt="炸裂！サブスク育成図鑑" style={{ width: '100%', maxWidth: '320px', height: 'auto', display: 'block', margin: '0 auto 8px' }} />
+                <p style={{ fontSize: '13px', color: '#666', marginTop: '6px' }}>（サブスクを放置して3ヶ月目の現実）</p>
               </div>
 
               {/* やばいウィジェット */}
