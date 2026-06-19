@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 // インタラインのスタイルを動的に注入（Tailwindのセットアップがなくても綺麗に表示するため）
 const injectStyles = () => {
@@ -63,7 +63,6 @@ export default function App() {
   ]);
 
   const targetSubsc = subscs[0];
-  const activeCount = subscs.filter((s) => s.active).length;
   const totalLossYearly =
     subscs.filter((s) => s.active).reduce((sum, s) => sum + s.price, 0) * 12;
 
@@ -101,7 +100,6 @@ export default function App() {
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          relative: 'relative',
           position: 'relative',
         }}
       >
@@ -152,7 +150,7 @@ export default function App() {
                   borderRadius: '20px',
                   padding: '16px',
                   border: '1px solid #ef4444',
-                  boxYshadow: '0 10px 15px -3px rgba(0,0,0,0.3)',
+                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)',
                   marginBottom: '30px',
                 }}
               >
@@ -187,7 +185,6 @@ export default function App() {
                 style={{
                   fontSize: '12px',
                   color: '#94a3b8',
-                  textCenter: 'center',
                   marginBottom: '20px',
                   padding: '0 10px',
                   textAlign: 'center',
@@ -228,7 +225,7 @@ export default function App() {
                 justifyContent: 'space-between',
               }}
             >
-              <div style={{ textAlignment: 'center', textAlign: 'center' }}>
+              <div style={{ textAlign: 'center' }}>
                 <span
                   style={{
                     fontSize: '11px',
@@ -278,7 +275,6 @@ export default function App() {
                     justifyContent: 'center',
                     boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5), inset -8px -8px 16px rgba(0,0,0,0.3)',
                     border: 'none',
-                    relative: 'relative',
                     position: 'relative',
                     zIndex: 10,
                   }}
@@ -351,7 +347,7 @@ export default function App() {
                 </p>
               </div>
 
-              <div style={{ spaceY: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {/* コンセプトテストの知見を反映：全自動ではなく、自分の指で意思決定させる最終確認ボタン */}
                 <button
                   onClick={handleDeclineQuest}
