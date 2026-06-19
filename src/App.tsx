@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-// インタラインのスタイルを動的に注入（Tailwindのセットアップがなくても綺麗に表示するため）
+// アニメーションスタイルの注入（よりリッチな演出を追加）
 const injectStyles = () => {
   if (typeof document === 'undefined') return;
   const id = 'subsc-ikusei-styles';
@@ -8,622 +8,507 @@ const injectStyles = () => {
   const style = document.createElement('style');
   style.id = id;
   style.innerHTML = `
-    @keyframes pulse-slow { 0%, 100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.08); opacity: 0.4; } }
-    @keyframes shake-monster { 0%, 100% { transform: rotate(0deg) scale(1); } 20% { transform: rotate(-3deg) scale(1.02); } 40% { transform: rotate(3deg) scale(0.98); } 60% { transform: rotate(-2deg) scale(1.01); } 80% { transform: rotate(2deg) scale(0.99); } }
+    @keyframes pulse-slow { 
+      0%, 100% { transform: scale(1); } 
+      50% { transform: scale(1.06); } 
+    }
+    @keyframes shake-monster { 
+      0%, 100% { transform: rotate(0deg) scale(1); } 
+      20% { transform: rotate(-3deg) scale(1.03); } 
+      40% { transform: rotate(3deg) scale(0.97); } 
+      60% { transform: rotate(-2deg) scale(1.02); } 
+      80% { transform: rotate(2deg) scale(0.98); } 
+    }
+    @keyframes float-slow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
     .animate-pulse-slow { animation: pulse-slow 3s infinite ease-in-out; }
-    .animate-shake { animation: shake-monster 0.6s infinite ease-in-out; }
+    .animate-shake { animation: shake-monster 0.5s infinite ease-in-out; }
+    .animate-float { animation: float-slow 4s infinite ease-in-out; }
+    
+    /* スマホ画面風に見せるためのスクロールバー非表示設定 */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* ボタンのタップ効果 */
+    .clickable:active { transform: scale(0.95); transition: transform 0.1s; }
   `;
   document.head.appendChild(style);
 };
 injectStyles();
 
 export default function App() {
-  const [stage, setStage] = useState<'widget' | 'monsters' | 'cleared'>(
-    'widget'
-  );
-  const [isScratched, setIsScratched] = useState(false);
-  const [currentTime, setCurrentTime] = useState<string>('');
+  const [stage, setStage] = useState<'widget' | 'monsters' | 'cleared'>('widget');
+  
+  // あぶり出し（スクラッチ）の進捗状況を数値で管理（0: 未あぶり ~ 4: 完了）
+  const [rubCount, setRubCount] = useState<number>(0);
+  const [isClearedAnimation, setIsClearedAnimation] = useState<boolean>(false);
 
-  // 現在時刻を取得して更新
+  // ステラ（AI）からの全肯定メッセージ
+  const praiseMessages = [
+    "「自動引き落としの1,480円、ついにバイバイできたね！」",
+    "「後回しにしちゃうのは、毎日お仕事を頑張って疲れてる証拠。」",
+    "「誇れ、お前は強い」",
+    "「一歩進めた自分を、今日はいっぱい褒めてあげよう✨」"
+  ];
+
+  // 最終表示用のランダムなメッセージ（スクラッチ完了時に一度だけセット）
+  const [finalPraise, setFinalPraise] = useState<string | null>(null);
+
+  // すべてあぶり出したら自動的にクリア画面へ遷移する演出
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      setCurrentTime(`${hours}:${minutes}`);
-    };
-    
-    updateTime();
-    const interval = setInterval(updateTime, 60000); // 1分ごとに更新
-    
-    return () => clearInterval(interval);
-  }, []);
-  const [subscs, setSubscs] = useState([
-    {
-      id: 1,
-      name: '謎の音楽雑誌アプリ',
-      price: 300,
-      company: 'XYZメディア',
-      active: true,
-    },
-    {
-      id: 2,
-      name: '1回しか使ってない動画配信',
-      price: 980,
-      company: '合同会社クオリティ',
-      active: true,
-    },
-    {
-      id: 3,
-      name: '期限切れ忘れた英会話ツール',
-      price: 1480,
-      company: 'GlobalEdu Inc.',
-      active: true,
-    },
-  ]);
+    if (rubCount === 4) {
+      const timer = setTimeout(() => {
+        setIsClearedAnimation(true);
+        setTimeout(() => {
+          setStage('cleared');
+        }, 600); // フェードアウトの時間
+      }, 1500); // メッセージを読み終えるための余韻
+      return () => clearTimeout(timer);
+    }
+  }, [rubCount]);
 
-  const targetSubsc = subscs[0];
-  const totalLossYearly =
-    subscs.filter((s) => s.active).reduce((sum, s) => sum + s.price, 0) * 12;
+  // ポインタ操作でのスクラッチ改善（ドラッグでこすれるように）
+  const isPointerDownRef = useRef(false);
+  const lastIncrementRef = useRef<number>(0);
 
-  const handleDeclineQuest = () => {
-    setSubscs(
-      subscs.map((s) => (s.id === targetSubsc.id ? { ...s, active: false } : s))
-    );
-    setStage('cleared');
+  const tryIncrementRub = () => {
+    const now = Date.now();
+    // インクリメントは最低100msの間隔を空ける
+    if (now - lastIncrementRef.current < 120) return;
+    lastIncrementRef.current = now;
+    setRubCount(prev => Math.min(prev + 1, 4));
   };
 
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    isPointerDownRef.current = true;
+    tryIncrementRub();
+    try {
+      (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const handlePointerMove = () => {
+    if (!isPointerDownRef.current) return;
+    tryIncrementRub();
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    isPointerDownRef.current = false;
+    try {
+      (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const handlePointerCancel = () => {
+    isPointerDownRef.current = false;
+  };
+
+  // rubCount が 4 になったら一度だけランダムなメッセージを選ぶ
+  useEffect(() => {
+    if (rubCount === 4 && finalPraise == null) {
+      const available = praiseMessages.filter(m => m && m.trim() !== '');
+      if (available.length === 0) return;
+      const idx = Math.floor(Math.random() * available.length);
+      const t = setTimeout(() => setFinalPraise(available[idx]), 450);
+      return () => clearTimeout(t);
+    }
+  }, [rubCount, finalPraise]);
   return (
     <div
       style={{
-        minHeight: '100vh',
-        backgroundColor: '#0f172a',
-        color: '#f8fafc',
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
         justifyContent: 'center',
-        padding: '1.5rem',
-        fontFamily: 'sans-serif',
+        alignItems: 'center',
+        minHeight: '100vh',
+        backgroundColor: '#121212',
+        color: '#ffffff',
+        fontFamily: '"Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", sans-serif',
+        padding: '20px',
       }}
     >
-      {/* Android風のスマホ外枠 */}
+      {/* スマートフォン型コンテナ */}
       <div
+        className="no-scrollbar"
         style={{
-          width: '100%',
-          maxWidth: '375px',
-          height: '680px',
-          backgroundColor: '#1a1a1a',
-          borderRadius: '20px',
-          border: '6px solid #2a2a2a',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
-          overflow: 'hidden',
+          width: '375px',
+          height: '712px',
+          backgroundColor: '#1e1e1e',
+          borderRadius: '40px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+          border: '8px solid #2a2a2a',
+          position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative',
+          overflow: 'hidden',
+          transition: 'all 0.5s ease',
         }}
       >
-        {/* Android風ステータスバー */}
+        {/* ステータスバー（スマホらしさの演出） */}
         <div
           style={{
-            height: '24px',
-            backgroundColor: '#000',
+            height: '34px',
+            backgroundColor: '#1a1a1a',
             display: 'flex',
-            alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 16px',
-            fontSize: '10px',
-            color: '#fff',
-            paddingTop: '2px',
+            alignItems: 'center',
+            padding: '0 24px',
+            fontSize: '12px',
+            color: '#888',
+            fontWeight: '500',
           }}
         >
-          <span style={{ fontSize: '10px' }}>{currentTime || '--:--'}</span>
-          <div style={{ display: 'flex', gap: '3px', fontSize: '9px' }}>📶 📡 🔋</div>
+          <span>12:34</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <span>📶</span>
+            <span>🔋 85%</span>
+          </div>
         </div>
 
-        {/* メイン画面エリア */}
+        {/* メインコンテンツエリア */}
         <div
+          className="no-scrollbar"
           style={{
             flex: 1,
-            padding: '20px',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
             overflowY: 'auto',
+            position: 'relative',
+            opacity: isClearedAnimation ? 0 : 1,
+            transition: 'opacity 0.6s ease',
           }}
         >
-          {/* 1. 通知・ウィジェット起動ステージ（3コマ目対応） */}
+          {/* ==================== 1. WIDGET STAGE (初期状態) ==================== */}
           {stage === 'widget' && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <div
-                style={{
-                  width: '100%',
-                  backgroundColor: '#2d3748',
-                  borderRadius: '20px',
-                  padding: '16px',
-                  border: '1px solid #ef4444',
-                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)',
-                  marginBottom: '30px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: '#f87171',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    marginBottom: '8px',
-                  }}
-                >
-                  <span>⚠️</span> <span>CARD NOTIFICATION</span>
-                </div>
-                <p
-                  style={{
-                    fontSize: '13px',
-                    color: '#cbd5e1',
-                    margin: 0,
-                    lineHeight: '1.5',
-                  }}
-                >
-                  【重要】引き落とし不能通知
-                  <br />
-                  アカウントの残高が不足しているため、今月の定期決済が完了できませんでした。明細をご確認ください。
-                </p>
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#aaa', marginBottom: '8px' }}>ホーム画面</h1>
+                <p style={{ fontSize: '13px', color: '#666' }}>（サブスクを放置して3ヶ月目の現実）</p>
               </div>
 
-              <p
-                style={{
-                  fontSize: '12px',
-                  color: '#94a3b8',
-                  marginBottom: '20px',
-                  padding: '0 10px',
-                  textAlign: 'center',
-                }}
-              >
-                「また負の儀式が始まるのか…」と絶望する佐藤さんの画面に、怪しいボタンのウィジェットが浮かび上がる…
-              </p>
-
-              <button
+              {/* やばいウィジェット */}
+              <div
+                className="animate-pulse-slow clickable"
                 onClick={() => setStage('monsters')}
                 style={{
-                  width: '100%',
-                  padding: '16px',
-                  background:
-                    'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
-                  border: 'none',
-                  borderRadius: '16px',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '15px',
+                  width: '90%',
+                  backgroundColor: '#2d1f1f',
+                  border: '2px solid #ff4a4a',
+                  borderRadius: '20px',
+                  padding: '20px',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)',
+                  boxShadow: '0 10px 20px rgba(255, 74, 74, 0.15)',
                   transition: 'transform 0.2s',
                 }}
               >
-                🚨 思考停止のまま「やばいボタン」を叩く
-              </button>
-            </div>
-          )}
-
-          {/* 2. モンスター直視 ＆ 最小単位のクエスト提示ステージ（4〜6コマ目対応） */}
-          {stage === 'monsters' && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div style={{ textAlign: 'center' }}>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: '#94a3b8',
-                    backgroundColor: '#0f172a',
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                  }}
-                >
-                  明細データは直感的に要約されました
-                </span>
-              </div>
-
-              {/* 視覚化：放置金額に応じて巨大化し、震えるガム型モンスター */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  margin: '20px 0',
-                  position: 'relative',
-                }}
-              >
-                <div
-                  className="animate-pulse-slow"
-                  style={{
-                    position: 'absolute',
-                    width: '190px',
-                    height: '190px',
-                    borderRadius: '50%',
-                    backgroundColor: '#f43f5e',
-                    filter: 'blur(8px)',
-                    opacity: 0.3,
-                  }}
-                ></div>
-                <div
-                  className="animate-shake"
-                  style={{
-                    width: '170px',
-                    height: '170px',
-                    borderRadius: '50%',
-                    background:
-                      'linear-gradient(180deg, #f43f5e 0%, #ec4899 50%, #be123c 100%)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5), inset -8px -8px 16px rgba(0,0,0,0.3)',
-                    border: 'none',
-                    position: 'relative',
-                    zIndex: 10,
-                  }}
-                >
-                  <span style={{ fontSize: '50px', marginBottom: '8px' }}>
-                    👀
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      color: '#0f172a',
-                      backgroundColor: '#fff',
-                      padding: '2px 8px',
-                      borderRadius: '10px',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    炸裂寸前
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 'black',
-                      color: '#fff',
-                      marginTop: '6px',
-                      textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                    }}
-                  >
-                    年間損失: {totalLossYearly.toLocaleString()}円
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '28px' }}>🚨</span>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '15px', color: '#ff6b6b', fontWeight: 'bold' }}>サブスク警告</h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#bbb' }}>未利用のサービスが肥大化中</p>
+                  </div>
                 </div>
-              </div>
-
-              <div
-                style={{
-                  backgroundColor: '#0f172a',
-                  borderRadius: '16px',
-                  padding: '14px',
-                  border: '1px solid #ec4899',
-                  marginBottom: '16px',
-                }}
-              >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    backgroundColor: 'rgba(236, 72, 153, 0.2)',
-                    color: '#f472b6',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    marginBottom: '6px',
-                  }}
-                >
-                  今週の1個だけ解約クエスト
-                </span>
-                <h3
-                  style={{
-                    margin: '0 0 4px 0',
-                    fontSize: '15px',
-                    fontWeight: 'bold',
-                    color: '#fff',
-                  }}
-                >
-                  {targetSubsc.name}
-                </h3>
-                <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>
-                  請求会社名: {targetSubsc.company} / 月額 {targetSubsc.price}円
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {/* コンセプトテストの知見を反映：全自動ではなく、自分の指で意思決定させる最終確認ボタン */}
+                <div style={{ backgroundColor: '#1a1212', borderRadius: '10px', padding: '12px', fontSize: '13px', color: '#ffb3b3', lineHeight: '1.4', textAlign: 'center' }}>
+                  ⚠️ <b>動画配信プレミアム</b> が<br />
+                  あなたの財布を圧迫しています！
+                </div>
                 <button
-                  onClick={handleDeclineQuest}
+                  className="clickable"
                   style={{
                     width: '100%',
-                    padding: '14px',
-                    backgroundColor: '#10b981',
+                    marginTop: '12px',
+                    backgroundColor: '#ff4a4a',
+                    color: '#fff',
                     border: 'none',
-                    borderRadius: '12px',
-                    color: '#0f172a',
+                    borderRadius: '10px',
+                    padding: '10px',
                     fontWeight: 'bold',
                     fontSize: '14px',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-                    marginBottom: '8px',
                   }}
                 >
-                  👍 承認：AIにこの1個だけ手続きを任せる
-                </button>
-                <button
-                  onClick={() => setStage('widget')}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: '#64748b',
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  あとでやる（画面を閉じて現実逃避する）
+                  現実と向き合う（警告を解く）
                 </button>
               </div>
             </div>
           )}
 
-          {/* 3. 解約完了 ＆ あぶり出し振り返りステージ（7〜9コマ目対応） */}
-          {stage === 'cleared' && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  marginTop: '10px',
-                }}
-              >
-                <div
-                  style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '50%',
-                    backgroundColor: '#10b981',
+          {/* ==================== 2. MONSTERS STAGE (メイン機能) ==================== */}
+          {stage === 'monsters' && (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* ヘッダー */}
+              <div style={{ padding: '16px', borderBottom: '1px solid #2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1a1a1a' }}>
+                <span style={{ fontSize: '14px', color: '#aaa', fontWeight: 'bold' }}>⚔️ サブスク清算クエスト</span>
+                <span style={{ fontSize: '12px', backgroundColor: '#333', padding: '4px 8px', borderRadius: '12px', color: '#ffb3b3' }}>難易度: 易しい</span>
+              </div>
+
+              {/* クエスト提示エリア */}
+              <div style={{ padding: '16px 20px 0', textAlign: 'center' }}>
+                <div style={{ display: 'inline-block', backgroundColor: '#2a2415', border: '1px solid #d4af37', borderRadius: '12px', padding: '10px 16px', maxWidth: '90%' }}>
+                  <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>MISSION</span>
+                  <span style={{ fontSize: '14px', color: '#fff', fontWeight: '500' }}>「今週は、この1個だけ解約する？」</span>
+                </div>
+              </div>
+
+              {/* モンスター表示エリア */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '10px' }}>
+                
+                {/* あぶり出しの進捗度に応じたモンスターの見た目の変化 */}
+                <div 
+                  className={rubCount === 0 ? "animate-shake animate-pulse-slow" : "animate-float"}
+                  style={{ 
+                    position: 'relative',
+                    width: '180px',
+                    height: '180px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: '12px',
-                    boxShadow: '0 4px 10px rgba(16,185,129,0.2)',
+                    transition: 'all 0.5s ease'
                   }}
                 >
-                  <span style={{ fontSize: '30px' }}>😊</span>
-                </div>
-                <h2
-                  style={{
-                    margin: '0 0 4px 0',
-                    fontSize: '18px',
-                    fontWeight: 'bold',
-                    color: '#10b981',
-                  }}
-                >
-                  清算完了！
-                </h2>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: '11px',
-                    color: '#94a3b8',
-                    textAlign: 'center',
-                  }}
-                >
-                  モンスターが萎み、実績が図鑑にコレクションされました。
-                </p>
-              </div>
-
-              {/* こする体験を再現するインタラクティブな「あぶり出し」コンポーネント */}
-              <div
-                style={{
-                  backgroundColor: '#0f172a',
-                  borderRadius: '20px',
-                  padding: '20px',
-                  position: 'relative',
-                  minHeight: '140px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid #334155',
-                  overflow: 'hidden',
-                }}
-              >
-                {!isScratched ? (
+                  {/* 風船ガム型モンスターの本体イメージ */}
                   <div
-                    onMouseEnter={() => setIsScratched(true)}
-                    onTouchStart={() => setIsScratched(true)}
                     style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background:
-                        'linear-gradient(135deg, #ef476f 0%, #f78c6b 50%, #ffd166 100%)',
+                      width: rubCount === 0 ? '160px' : `${160 - rubCount * 25}px`,
+                      height: rubCount === 0 ? '160px' : `${160 - rubCount * 25}px`,
+                      backgroundColor: rubCount === 0 ? '#ff66a3' : '#b3b3b3',
+                      borderRadius: '50%',
+                      boxShadow: rubCount === 0 ? '0 0 30px rgba(255,102,163,0.6)' : 'none',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer',
-                      padding: '15px',
-                      backgroundImage: `
-                        radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 1px, transparent 1px),
-                        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.2) 2px, transparent 2px),
-                        radial-gradient(circle at 40% 80%, rgba(0,0,0,0.1) 1px, transparent 1px),
-                        linear-gradient(135deg, #ef476f 0%, #f78c6b 50%, #ffd166 100%)
-                      `,
-                      backgroundSize: '100px 100px, 150px 150px, 120px 120px, 100% 100%',
-                      boxShadow: 'inset -4px -4px 12px rgba(0,0,0,0.3), inset 4px 4px 12px rgba(255,255,255,0.2)',
+                      fontSize: '48px',
+                      position: 'relative',
+                      transition: 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                     }}
                   >
-                    <span style={{ fontSize: '24px', marginBottom: '6px' }}>
-                      🧼
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '12px',
+                    {rubCount === 0 ? '🤬' : rubCount < 4 ? '😰' : '🏳️‍🌈'}
+                    
+                    {/* サブスク金額タグ */}
+                    {rubCount === 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '-10px',
+                        backgroundColor: '#ff4a4a',
+                        color: 'white',
+                        fontSize: '11px',
                         fontWeight: 'bold',
-                        color: '#fff',
-                        textAlign: 'center',
-                        animation: 'pulse-slow 2s infinite',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
-                      }}
-                    >
-                      月初のリラックスタイムです。
-                      <br />
-                      画面にへばりついたガムをこすってみましょう
-                    </span>
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        月額 1,480円
+                      </div>
+                    )}
                   </div>
-                ) : null}
+                </div>
 
-                {/* こするとあぶり出される、佐藤さんの見栄と孤独を癒やすAIの全肯定労いテキスト */}
-                <div
-                  style={{
-                    textAlign: 'center',
-                    opacity: isScratched ? 1 : 0,
-                    transition: 'opacity 1s ease-in-out',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      color: '#f59e0b',
-                      fontWeight: 'bold',
-                      display: 'block',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    ✨ AIバディからの労いメッセージ
-                  </span>
-                  <p
-                    style={{
-                      margin: '0 0 10px 0',
-                      fontSize: '13px',
-                      color: '#fef08a',
-                      fontStyle: 'italic',
-                      lineHeight: '1.6',
-                    }}
-                  >
-                    「毎月大した額じゃないと言い訳して逃げる自分に、今日しっかり向き合えたね。先延ばしにしない小さな決断、本当に偉いぞ健一！」
+                {/* モンスター名とステータス */}
+                <div style={{ textAlign: 'center', marginTop: '16px', height: '45px' }}>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: rubCount === 0 ? '#ff66a3' : '#aaa' }}>
+                    {rubCount === 0 ? 'ガム・フウセン（動画サブスクの化身）' : rubCount < 4 ? '萎みかけたガム' : '清算された魂'}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#777' }}>
+                    {rubCount === 0 ? '放置されてパンパンに肥大化している！' : rubCount < 4 ? '解約されてパワーを失っている…' : 'ただのガムに戻った。'}
                   </p>
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: '#34d399',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    固定費削減成功: ＋{targetSubsc.price}円 / 月
-                  </div>
                 </div>
               </div>
 
+              {/* あぶり出し（スクラッチ）操作エリア */}
+              <div 
+                style={{ 
+                  backgroundColor: '#161616', 
+                  borderTop: '1px solid #2a2a2a', 
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}
+              >
+                {rubCount < 4 ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#aaa', padding: '0 4px' }}>
+                      <span>👋 指で画面をこすって労う</span>
+                      <span>あぶり出し: {rubCount * 25}%</span>
+                    </div>
+                    
+                    {/* スクラッチエリア（ここにマウスを乗せる/スマホで触ると進行） */}
+                    <div
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerCancel}
+                      onPointerLeave={handlePointerUp}
+                      className="clickable"
+                      style={{
+                        height: '90px',
+                        backgroundColor: '#262626',
+                        border: '2px dashed #444',
+                        borderRadius: '16px',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        overflow: 'hidden',
+                        transition: 'border-color 0.3s'
+                      }}
+                    >
+                      {/* もや（あぶり出し前のマスク） */}
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: '#403035',
+                        opacity: 1 - rubCount * 0.25, // こするたびに透明になっていく
+                        transition: 'opacity 0.4s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ff99bb',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        pointerEvents: 'none'
+                      }}>
+                        {rubCount === 0 ? '▼ ここを何度もこすって「あぶり出す」' : 'もっとこすって…！'}
+                      </div>
+
+                      {/* あぶり出されるメッセージ */}
+                      {rubCount === 0 ? (
+                        <div style={{ 
+                          padding: '12px', 
+                          textAlign: 'center', 
+                          color: '#00ffcc', 
+                          fontSize: '13px', 
+                          lineHeight: '1.5',
+                          fontWeight: '500'
+                        }}>
+                          {praiseMessages[0]}
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                    <div style={{ 
+                      height: '140px', 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: '#00ffcc',
+                      fontSize: '15px',
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      animation: 'pulse-slow 2s infinite'
+                    }}>
+                      <div>✨ 魂の清算完了！ ✨</div>
+                      {finalPraise ? (
+                        <div style={{
+                          marginTop: '8px',
+                          color: '#fff',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          lineHeight: '1.6',
+                          maxWidth: '92%',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
+                          textAlign: 'center',
+                          zIndex: 30,
+                        }}>{finalPraise}</div>
+                      ) : (
+                        <div style={{ marginTop: '8px', color: '#aaa', fontSize: '12px' }}>しばらくお待ちください…</div>
+                      )}
+                      <span style={{ fontSize: '12px', color: '#aaa', fontWeight: 'normal', display: 'block', marginTop: '8px' }}>
+                        図鑑へ転送しています...
+                      </span>
+                    </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ==================== 3. CLEARED STAGE (図鑑・達成感) ==================== */}
+          {stage === 'cleared' && (
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'space-between' }}>
+              <div style={{ textShadow: '0 0 20px rgba(0,255,204,0.3)', textAlign: 'center', width: '100%', marginTop: '20px' }}>
+                <span style={{ fontSize: '48px', display: 'block', marginBottom: '10px' }}>🏆</span>
+                <h2 style={{ color: '#00ffcc', margin: '0 0 8px 0', fontSize: '22px', fontWeight: 'bold' }}>クエスト達成！</h2>
+                <p style={{ color: '#aaa', fontSize: '13px', margin: 0 }}>思考停止のまま、自信を取り戻した！</p>
+              </div>
+
+              {/* コレクション図鑑風カード */}
+              <div style={{
+                width: '100%',
+                backgroundColor: '#252525',
+                borderRadius: '20px',
+                padding: '20px',
+                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
+                border: '1px solid #333',
+                textAlign: 'center'
+              }}>
+                <span style={{ fontSize: '11px', color: '#00ffcc', border: '1px solid #00ffcc', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
+                  モンスター図鑑 #01
+                </span>
+                <div style={{ fontSize: '48px', margin: '16px 0 8px' }}>🎈</div>
+                <h4 style={{ margin: '0 0 8px 0', color: '#fff', fontSize: '15px' }}>しぼんだガム・フウセン</h4>
+                <p style={{ margin: 0, fontSize: '12px', color: '#999', lineHeight: '1.5' }}>
+                  3ヶ月放置され、4,440円を吸い上げていたモンスター。あなたの「あぶり出し」の労いによって大人しくなり、ただのゴムに戻った。
+                </p>
+              </div>
+
+              {/* 次のステップ */}
               <button
+                className="clickable"
                 onClick={() => {
                   setStage('widget');
-                  setIsScratched(false);
+                  setRubCount(0);
+                  setFinalPraise(null);
                 }}
                 style={{
                   width: '100%',
-                  padding: '12px',
-                  backgroundColor: '#334155',
-                  border: 'none',
+                  backgroundColor: '#333',
+                  color: '#fff',
+                  border: '1px solid #444',
                   borderRadius: '12px',
-                  color: '#cbd5e1',
-                  fontSize: '12px',
+                  padding: '14px',
                   fontWeight: 'bold',
+                  fontSize: '14px',
                   cursor: 'pointer',
+                  marginBottom: '20px',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
                 }}
               >
-                🔄 シナリオをもう一度体験する
+                ホーム画面に戻る（次の冒険へ）
               </button>
             </div>
           )}
         </div>
 
-        {/* Android風ナビゲーションバー */}
+        {/* 下部ナビゲーションバー（スマホらしさの演出） */}
         <div
           style={{
-            height: '48px',
+            height: '50px',
             display: 'flex',
-            alignItems: 'center',
             justifyContent: 'space-around',
             backgroundColor: '#1a1a1a',
-            borderTop: '1px solid #333',
+            borderTop: '1px solid #2a2a2a',
+            paddingBottom: '4px'
           }}
         >
-          <button
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#fff',
-              fontSize: '20px',
-              cursor: 'pointer',
-              padding: '8px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ⬅️
-          </button>
-          <button
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#fff',
-              fontSize: '20px',
-              cursor: 'pointer',
-              padding: '8px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <button className="clickable" style={{ background: 'none', border: 'none', color: stage === 'widget' ? '#00ffcc' : '#666', fontSize: '18px', cursor: 'pointer' }} onClick={() => { setStage('widget'); setRubCount(0); setFinalPraise(null); }}>
             🏠
           </button>
-          <button
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#fff',
-              fontSize: '20px',
-              cursor: 'pointer',
-              padding: '8px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ⋮
+          <button className="clickable" style={{ background: 'none', border: 'none', color: stage === 'monsters' ? '#00ffcc' : '#666', fontSize: '18px', cursor: 'pointer' }} onClick={() => setStage('monsters')}>
+            ⚔️
+          </button>
+          <button className="clickable" style={{ background: 'none', border: 'none', color: stage === 'cleared' ? '#00ffcc' : '#666', fontSize: '18px', cursor: 'pointer' }} onClick={() => setStage('cleared')}>
+            📖
           </button>
         </div>
       </div>
