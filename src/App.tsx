@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 // 画像を `src/assets/` に置いてモジュールとしてインポートします
 import backgroundImage from './assets/wallpaper.jpg';
 import subscKunImage from './assets/subsc-kun.png';
+// ロゴ候補（ローカルに置いたロゴが `hero.png` の場合に使います）
+import logoImage from './assets/hero.png';
 
 // アニメーションスタイルの注入（よりリッチな演出を追加）
 const injectStyles = () => {
@@ -197,7 +199,7 @@ export default function App() {
               <div style={{ position: 'relative', zIndex: 2, width: '100%' }}>
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                   {logoAvailable ? (
-                    <img src={subscKunImage} alt="サブスクくん" style={{ width: '100%', maxWidth: '320px', height: 'auto', display: 'block', margin: '0 auto 8px' }} onError={() => setLogoAvailable(false)} onLoad={() => setLogoAvailable(true)} />
+                    <img src={logoImage} alt="ロゴ" style={{ width: '100%', maxWidth: '240px', height: 'auto', display: 'block', margin: '0 auto 8px', objectFit: 'contain', background: 'transparent' }} onError={() => setLogoAvailable(false)} onLoad={() => setLogoAvailable(true)} />
                   ) : (
                     <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#ddd', marginBottom: '8px' }}>炸裂！ サブスク育成図鑑</h1>
                   )}
