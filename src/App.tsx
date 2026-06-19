@@ -55,6 +55,8 @@ export default function App() {
 
   // 最終表示用のランダムなメッセージ（スクラッチ完了時に一度だけセット）
   const [finalPraise, setFinalPraise] = useState<string | null>(null);
+  const [logoAvailable, setLogoAvailable] = useState<boolean>(true);
+  const [wallpaperAvailable, setWallpaperAvailable] = useState<boolean>(true);
 
   // すべてあぶり出したら自動的にクリア画面へ遷移する演出
   useEffect(() => {
@@ -185,11 +187,17 @@ export default function App() {
         >
           {/* ==================== 1. WIDGET STAGE (初期状態) ==================== */}
           {stage === 'widget' && (
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'relative', backgroundImage: 'url("/wallpaper.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'relative', backgroundImage: wallpaperAvailable ? 'url("/wallpaper.jpg")' : undefined, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: wallpaperAvailable ? undefined : '#121212' }}>
+              {/* invisible detector: if wallpaper.jpg missing, onError will flip flag */}
+              <img src="/wallpaper.jpg" alt="" style={{ display: 'none' }} onError={() => setWallpaperAvailable(false)} onLoad={() => setWallpaperAvailable(true)} />
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1 }} />
               <div style={{ position: 'relative', zIndex: 2, width: '100%' }}>
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                  <img src="/logo.jpg" alt="炸裂！サブスク育成図鑑" style={{ width: '100%', maxWidth: '320px', height: 'auto', display: 'block', margin: '0 auto 8px' }} />
+                  {logoAvailable ? (
+                    <img src="/logo.jpg" alt="炸裂！サブスク育成図鑑" style={{ width: '100%', maxWidth: '320px', height: 'auto', display: 'block', margin: '0 auto 8px' }} onError={() => setLogoAvailable(false)} onLoad={() => setLogoAvailable(true)} />
+                  ) : (
+                    <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#ddd', marginBottom: '8px' }}>炸裂！ サブスク育成図鑑</h1>
+                  )}
                   <p style={{ fontSize: '13px', color: '#ddd', marginTop: '6px' }}>（サブスクを放置して3ヶ月目の現実）</p>
                 </div>
 
