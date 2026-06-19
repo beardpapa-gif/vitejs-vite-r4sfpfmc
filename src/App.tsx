@@ -185,13 +185,15 @@ export default function App() {
         >
           {/* ==================== 1. WIDGET STAGE (初期状態) ==================== */}
           {stage === 'widget' && (
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-              <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                <img src="/logo.png" alt="炸裂！サブスク育成図鑑" style={{ width: '100%', maxWidth: '320px', height: 'auto', display: 'block', margin: '0 auto 8px' }} />
-                <p style={{ fontSize: '13px', color: '#666', marginTop: '6px' }}>（サブスクを放置して3ヶ月目の現実）</p>
-              </div>
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'relative', backgroundImage: 'url("/wallpaper.png")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1 }} />
+              <div style={{ position: 'relative', zIndex: 2, width: '100%' }}>
+                <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                  <img src="/logo.png" alt="炸裂！サブスク育成図鑑" style={{ width: '100%', maxWidth: '320px', height: 'auto', display: 'block', margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: '13px', color: '#ddd', marginTop: '6px' }}>（サブスクを放置して3ヶ月目の現実）</p>
+                </div>
 
-              {/* やばいウィジェット */}
+                {/* やばいウィジェット */}
               <div
                 className="animate-pulse-slow clickable"
                 onClick={() => setStage('monsters')}
@@ -236,6 +238,7 @@ export default function App() {
                 </button>
               </div>
             </div>
+          </div>
           )}
 
           {/* ==================== 2. MONSTERS STAGE (メイン機能) ==================== */}
