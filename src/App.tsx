@@ -49,7 +49,6 @@ export default function App() {
   
   // あぶり出し（スクラッチ）の進捗状況を数値で管理（0: 未あぶり ~ 4: 完了）
   const [rubCount, setRubCount] = useState<number>(0);
-  const [isClearedAnimation, setIsClearedAnimation] = useState<boolean>(false);
 
   // ステラ（AI）からの全肯定メッセージ
   const praiseMessages = [
@@ -64,16 +63,15 @@ export default function App() {
   const [logoAvailable, setLogoAvailable] = useState<boolean>(true);
   const [wallpaperAvailable, setWallpaperAvailable] = useState<boolean>(true);
 
-  // すべてあぶり出したら自動的にクリア画面へ遷移する演出
+  // すべてあぶり出したときの挙動:
+  // 自動で画面をフェードアウトして `cleared` に遷移してしまうと
+  // ユーザーが表示内容を確認できないため、ここでは自動遷移を止める。
+  // 必要であれば手動で `setStage('cleared')` を呼ぶ（例えばボタン押下時）。
   useEffect(() => {
     if (rubCount === 4) {
-      const timer = setTimeout(() => {
-        setIsClearedAnimation(true);
-        setTimeout(() => {
-          setStage('cleared');
-        }, 600); // フェードアウトの時間
-      }, 1500); // メッセージを読み終えるための余韻
-      return () => clearTimeout(timer);
+      // 以前はここで setIsClearedAnimation / setStage を呼んで自動遷移していました。
+      // それをやめ、ユーザー操作で遷移できるようにします。
+      // 代わりに必要なら別の演出フラグを立てることも可能。
     }
   }, [rubCount]);
 
@@ -187,7 +185,7 @@ export default function App() {
             flexDirection: 'column',
             overflowY: 'auto',
             position: 'relative',
-            opacity: isClearedAnimation ? 0 : 1,
+            opacity: 1,
             transition: 'opacity 0.6s ease',
           }}
         >
@@ -206,6 +204,41 @@ export default function App() {
                   )}
                   <p style={{ fontSize: '13px', color: '#ddd', marginTop: '6px' }}>（サブスクを放置して3ヶ月目の現実）</p>
                 </div>
+
+                  {/* 中部：サブスクくん（ガーデナー）の配置 */}
+                  <div 
+                    className="animate-float"
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      margin: '20px 0' 
+                    }}
+                  >
+                    <img 
+                      src={subscKunImage} 
+                      alt="サブスクくん" 
+                      style={{ 
+                        width: '120px', 
+                        height: '120px', 
+                        objectFit: 'contain',
+                        filter: 'drop-shadow(0px 8px 12px rgba(0,0,0,0.5))'
+                      }} 
+                    />
+                    <div style={{
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                      color: '#222',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      padding: '6px 12px',
+                      borderRadius: '12px',
+                      marginTop: '8px',
+                      position: 'relative',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    }}>
+                      「ボクと一緒にサブスクを育てよう！」
+                    </div>
+                  </div>
 
                 {/* やばいウィジェット */}
               <div
