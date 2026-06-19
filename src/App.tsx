@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import backgroundImage from './assets/wallpaper.jpg';
 import subscKunImage from './assets/subsc-kun.png';
 // ロゴ候補（ローカルに置いたロゴが `hero.png` の場合に使います）
-import logoImage from './assets/hero.png';
+// Use the actual logo file in assets (logo.png)
+import logoImage from './assets/logo.png';
 
 // アニメーションスタイルの注入（よりリッチな演出を追加）
 const injectStyles = () => {
