@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 // 画像を `src/assets/` に置いてモジュールとしてインポートします
 import backgroundImage from './assets/wallpaper.jpg';
 import subscKunImage from './assets/subsc-kun.png';
+import gamu1Image from './assets/gamu-1.png';
+import gamu2Image from './assets/gamu-2.png';
+import gamu3Image from './assets/gamu-3.png';
 // ロゴ候補（ローカルに置いたロゴが `hero.png` の場合に使います）
 // Use the actual logo file in assets (logo.png)
 import logoImage from './assets/logo.png';
@@ -62,6 +65,10 @@ export default function App() {
   const [finalPraise, setFinalPraise] = useState<string | null>(null);
   const [logoAvailable, setLogoAvailable] = useState<boolean>(true);
   const [wallpaperAvailable, setWallpaperAvailable] = useState<boolean>(true);
+  const [confirmMode, setConfirmMode] = useState<boolean>(true);
+
+  const gamuImage = rubCount === 0 ? gamu1Image : rubCount < 3 ? gamu2Image : gamu3Image;
+  const gamuAlt = rubCount === 0 ? 'パンパンに膨らんだガム' : rubCount < 3 ? '少し萎んだガム' : '萎んだガム';
 
   // すべてあぶり出したときの挙動:
   // 自動で画面をフェードアウトして `cleared` に遷移してしまうと
@@ -202,7 +209,7 @@ export default function App() {
                   ) : (
                     <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#ddd', marginBottom: '8px' }}>炸裂！ サブスク育成図鑑</h1>
                   )}
-                  <p style={{ fontSize: '13px', color: '#ddd', marginTop: '6px' }}>（サブスクを放置して3ヶ月目の現実）</p>
+                  <p style={{ fontSize: '13px', color: '#ddd', marginTop: '6px' }}>（お試し制作版）</p>
                 </div>
 
                   {/* 中部：サブスクくん（ガーデナー）の配置 */}
@@ -236,14 +243,14 @@ export default function App() {
                       position: 'relative',
                       boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                     }}>
-                      「ボクと一緒にサブスクを育てよう！」
+                      「ボクと一緒にサブスク図鑑を育てよう！」
                     </div>
                   </div>
 
                 {/* やばいウィジェット */}
               <div
                 className="animate-pulse-slow clickable"
-                onClick={() => setStage('monsters')}
+                onClick={() => { setStage('monsters'); setConfirmMode(true); }}
                 style={{
                   width: '90%',
                   backgroundColor: '#2d1f1f',
@@ -290,7 +297,72 @@ export default function App() {
 
           {/* ==================== 2. MONSTERS STAGE (メイン機能) ==================== */}
           {stage === 'monsters' && (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+              {/* 確認画面（最初に表示） */}
+              {confirmMode && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '20px' }}>
+                  <div style={{ backgroundColor: '#1e1e1e', borderRadius: '20px', padding: '28px', maxWidth: '90%', textAlign: 'center', border: '1px solid #333', boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}>
+                    <div style={{ fontSize: '32px', marginBottom: '16px' }}>📺</div>
+                    <h2 style={{ margin: '0 0 12px 0', color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>動画配信プレミアム</h2>
+                    <div style={{ backgroundColor: '#2a2a2a', padding: '12px', borderRadius: '12px', marginBottom: '16px' }}>
+                      <p style={{ margin: '8px 0', color: '#ccc', fontSize: '13px' }}>
+                        <strong>月額：1,480円</strong>
+                      </p>
+                      <p style={{ margin: '8px 0', color: '#aaa', fontSize: '12px' }}>
+                        3ヶ月未使用で自動引き落としされています
+                      </p>
+                      <p style={{ margin: '8px 0', color: '#999', fontSize: '11px' }}>
+                        登録日：2024年3月 | 最終利用：2024年3月
+                      </p>
+                    </div>
+                    <p style={{ margin: '16px 0 24px 0', color: '#ff99bb', fontSize: '14px', fontWeight: '500' }}>
+                      本当に解約しますか？
+                    </p>
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                      <button
+                        style={{
+                          flex: 1,
+                          backgroundColor: '#333',
+                          color: '#fff',
+                          border: '1px solid #555',
+                          borderRadius: '10px',
+                          padding: '12px',
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onClick={() => setStage('widget')}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#444'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#333'; }}
+                      >
+                        キャンセル
+                      </button>
+                      <button
+                        style={{
+                          flex: 1,
+                          backgroundColor: '#ff4a4a',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '12px',
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onClick={() => setConfirmMode(false)}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ff6b6b'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ff4a4a'; }}
+                      >
+                        了承（解約する）
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 以下、元のコンテンツ */}
               {/* ヘッダー */}
               <div style={{ padding: '16px', borderBottom: '1px solid #2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1a1a1a' }}>
                 <span style={{ fontSize: '14px', color: '#aaa', fontWeight: 'bold' }}>⚔️ サブスク清算クエスト</span>
@@ -308,7 +380,7 @@ export default function App() {
               {/* モンスター表示エリア */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '10px' }}>
                 
-                {/* あぶり出しの進捗度に応じたモンスターの見た目の変化 */}
+                {/* 解約攻撃の進捗度に応じたモンスターの見た目の変化 */}
                 <div 
                   className={rubCount === 0 ? "animate-shake animate-pulse-slow" : "animate-float"}
                   style={{ 
@@ -330,17 +402,23 @@ export default function App() {
                       borderRadius: '50%',
                       boxShadow: rubCount === 0 ? '0 0 30px rgba(255,102,163,0.6)' : 'none',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '48px',
                       position: 'relative',
+                      overflow: 'visible',
                       transition: 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                     }}
                   >
-                    {rubCount === 0 ? '🤬' : rubCount < 4 ? '😰' : '🏳️‍🌈'}
-                    
-                    {/* サブスク金額タグ */}
+                    <img
+                      src={gamuImage}
+                      alt={gamuAlt}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        pointerEvents: 'none'
+                      }}
+                    />
                     {rubCount === 0 && (
                       <div style={{
                         position: 'absolute',
@@ -360,11 +438,11 @@ export default function App() {
                 </div>
 
                 {/* モンスター名とステータス */}
-                <div style={{ textAlign: 'center', marginTop: '16px', height: '45px' }}>
+                <div style={{ textAlign: 'center', marginTop: '16px', minHeight: '70px', padding: '0 8px' }}>
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: rubCount === 0 ? '#ff66a3' : '#aaa' }}>
                     {rubCount === 0 ? 'ガム・フウセン（動画サブスクの化身）' : rubCount < 4 ? '萎みかけたガム' : '清算された魂'}
                   </h3>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#777' }}>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#777', lineHeight: '1.4' }}>
                     {rubCount === 0 ? '放置されてパンパンに肥大化している！' : rubCount < 4 ? '解約されてパワーを失っている…' : 'ただのガムに戻った。'}
                   </p>
                 </div>
@@ -384,8 +462,8 @@ export default function App() {
                 {rubCount < 4 ? (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#aaa', padding: '0 4px' }}>
-                      <span>👋 指で画面をこすって労う</span>
-                      <span>あぶり出し: {rubCount * 25}%</span>
+                      <span>👋 指で画面をこすって倒そう！</span>
+                      <span>ダメージ: {rubCount * 25}%</span>
                     </div>
                     
                     {/* スクラッチエリア（ここにマウスを乗せる/スマホで触ると進行） */}
@@ -489,7 +567,7 @@ export default function App() {
               <div style={{ textShadow: '0 0 20px rgba(0,255,204,0.3)', textAlign: 'center', width: '100%', marginTop: '20px' }}>
                 <span style={{ fontSize: '48px', display: 'block', marginBottom: '10px' }}>🏆</span>
                 <h2 style={{ color: '#00ffcc', margin: '0 0 8px 0', fontSize: '22px', fontWeight: 'bold' }}>クエスト達成！</h2>
-                <p style={{ color: '#aaa', fontSize: '13px', margin: 0 }}>思考停止のまま、自信を取り戻した！</p>
+                <p style={{ color: '#aaa', fontSize: '13px', margin: 0 }}>自信を取り戻した！</p>
               </div>
 
               {/* コレクション図鑑風カード */}
@@ -503,12 +581,18 @@ export default function App() {
                 textAlign: 'center'
               }}>
                 <span style={{ fontSize: '11px', color: '#00ffcc', border: '1px solid #00ffcc', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
-                  モンスター図鑑 #01
+                  サブスクモンスター図鑑 #01
                 </span>
-                <div style={{ fontSize: '48px', margin: '16px 0 8px' }}>🎈</div>
+                <div style={{ width: '100%', maxWidth: '120px', margin: '16px auto 8px' }}>
+                  <img
+                    src={gamu3Image}
+                    alt="萎んだガム"
+                    style={{ width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
+                  />
+                </div>
                 <h4 style={{ margin: '0 0 8px 0', color: '#fff', fontSize: '15px' }}>しぼんだガム・フウセン</h4>
                 <p style={{ margin: 0, fontSize: '12px', color: '#999', lineHeight: '1.5' }}>
-                  3ヶ月放置され、4,440円を吸い上げていたモンスター。あなたの「あぶり出し」の労いによって大人しくなり、ただのゴムに戻った。
+                  3ヶ月放置され、4,440円を吸い上げていたモンスター。あなたの「解約攻撃!」さぶすによって大人しくなり、ただのゴムに戻った。
                 </p>
               </div>
 
@@ -554,7 +638,7 @@ export default function App() {
           <button className="clickable" style={{ background: 'none', border: 'none', color: stage === 'widget' ? '#00ffcc' : '#666', fontSize: '18px', cursor: 'pointer' }} onClick={() => { setStage('widget'); setRubCount(0); setFinalPraise(null); }}>
             🏠
           </button>
-          <button className="clickable" style={{ background: 'none', border: 'none', color: stage === 'monsters' ? '#00ffcc' : '#666', fontSize: '18px', cursor: 'pointer' }} onClick={() => setStage('monsters')}>
+          <button className="clickable" style={{ background: 'none', border: 'none', color: stage === 'monsters' ? '#00ffcc' : '#666', fontSize: '18px', cursor: 'pointer' }} onClick={() => { setStage('monsters'); setConfirmMode(true); }}>
             ⚔️
           </button>
           <button className="clickable" style={{ background: 'none', border: 'none', color: stage === 'cleared' ? '#00ffcc' : '#666', fontSize: '18px', cursor: 'pointer' }} onClick={() => setStage('cleared')}>
